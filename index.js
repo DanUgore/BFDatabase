@@ -326,8 +326,9 @@ var BF_Database = {
 				},
 			}
 			passives.forEach(function (passive, index, passives) {
-				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive["passive id"] || "?"));
-				else effects.push(passiveIDs[passive["passive id"]](passive));
+				if (passiveIDs[passive["passive id"]]) effects.push(passiveIDs[passive["passive id"]](passive));
+				else if (passive["passive id"]) effects.push(strFormat("Unrecognized Passive (%s)", passive["passive id"]));
+				else effects.push(strFormat("Unknown Passive (%s)", passive["unknown passive id"]));
 			});
 			return effects.join(", ");
 		};
@@ -355,6 +356,8 @@ var BF_Database = {
 					queue.push(str);
 					str = strFormat("%s | %s", formatDict(unit['stats']['_lord'], path+'[stats][_lord]'), formatDict(unit['imp'], path+'[imp]'));
 					queue.push(str);
+					if (unit['leader skill']) queue.push("LS: "+formatDict(unit['leader skill'], "ls"));
+					if (unit['extra skill']) queue.push("ES: "+formatDict(unit['extra skill'], "es"));
 					if (unit['bb']) {
 						var bbinfo = "BB: " + formatDict(unit['bb'], 'bb');
 						queue.push(bbinfo);
@@ -505,7 +508,11 @@ var BF_Database = {
 					var formatCondition = function (prop) {
 						var effStr = "", cond = dict[prop];
 						switch (prop) {
-							case "item required": return strFormat("%s = %s", prop, (BFData.getItem(cond) || BFData.getItemJP(cond) || {}).name || ("Unknown Item ID: "+cond));
+							case "item required":
+								var name = "";
+								for (var game in BFData.versions)
+									if (!name && BFData[game].getItem(cond)) name = BFData[game].getItem(cond).name;
+								return strFormat("%s = %s", prop, name || ("Unknown Item ID: "+cond));
 							case "unit required":
 								var units = cond.map(function (unit) {
 									return unit.name || (BFData.getUnit(unit.id) || BFData.JP.getUnit(unit.id) || {}).name || ("Unknown Unit ID: "+cond);
@@ -553,6 +560,12 @@ var BF_Database = {
 					};
 					return buf + effects.sort().map(formatEffect).join(", ");
 
+				case "es":
+					buf += strFormat("Conditions: %s | ", dict["conditions"].map(function(con){return formatDict(con, "condition");}).join(", "));
+				case "ls":
+					buf += definePassive(dict.effects);
+					return buf;
+				
 				case "bb":
 					var bb = dict;
 					// buf += dict.name;
@@ -635,7 +648,10 @@ var BF_Database = {
 					buf += strFormat("%s - %s", dict.name, dict.desc);
 					queue.push(buf);
 					if (dict["type"] === "sphere") queue.push(strFormat("%s Type Sphere", dict['sphere type text']));
-					if (dict["effect"]) queue.push(formatItemDict(dict.effect, '[effect]'));
+					if (dict["effect"]) {
+						if (Array.isArray(dict["effect"])) queue.push(definePassive(dict.effect));
+						else queue.push(formatItemDict(dict.effect, '[effect]'));
+					}
 					return queue;
 				
 				case '[effect]':
@@ -657,6 +673,18 @@ var BF_Database = {
 						queue.push(strFormat("%d) %s", i, effect));
 					}
 					return queue;
+				case '[recipe]':
+					var karma = Number(dict['karma']) || 0;
+					if (karma) buf += strFormat("Cost: %d Karma | ", karma);
+					buf += "Materials: ";
+					buf += dict['materials'].map(function (mat) {
+						var name = "";
+						for (var game in BFData.versions)
+							if (!name && BFData[game].getItem(mat.id)) name = BFData[game].getItem(mat.id).name;
+						return strFormat("%s x%d", name || "Unknown Item ("+mat.id+")", mat.count);
+					}).join(", ");
+					return buf;
+				
 				case 'effect': // Internal case used by the [effect] path
 					var effects = Object.keys(dict);
 					var formatEffect = function (prop) {
