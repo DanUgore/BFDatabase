@@ -105,7 +105,55 @@ var BF_Database = {
 					}
 					return descBuf.join(" ");
 				},
-				
+				"21": function (dict) {
+					var buffs = [], descBuf = [], desc = "";
+					var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
+					var buffObj = {};
+					if (dict["first x turns atk% (1)"]) buffObj["atk% buff"] = dict["first x turns atk% (1)"];
+					if (dict["first x turns def% (3)"]) buffObj["def% buff"] = dict["first x turns def% (3)"];
+					if (dict["first x turns rec% (5)"]) buffObj["rec% buff"] = dict["first x turns rec% (5)"];
+					if (dict["first x turns crit% (7)"]) buffObj["crit% buff"] = dict["first x turns crit% (7)"];
+					return strFormat("%s for First %s Turns", defineStatBuffs(buffObj), dict["first x turns"]);
+				},
+				"24": function (dict) { // Damage to HP on hit
+					var buf = "";
+					if (dict["dmg% to hp% when attacked chance%"] < 100) buf += dict["dmg% to hp% when attacked chance%"] + "% Chance ";
+					buf += dict["dmg% to hp% when attacked low"];
+					if (dict["dmg% to hp% when attacked low"] !== dict["dmg% to hp% when attacked high"]) buf += "-"+dict["dmg% to hp% when attacked high"];
+					buf += "% DMG to HP when hit";
+					return buf;
+				},
+				"25": function (dict) { // BC On Hit
+					var buf = "";
+					if (dict["bc fill when attacked chance%"] < 100) buf += dict["bc fill when attacked chance%"] + "% Chance ";
+					buf += dict["bc fill when attacked low"];
+					if (dict["bc fill when attacked low"] !== dict["bc fill when attacked high"]) buf += "-"+dict["bc fill when attacked high"];
+					buf += " BC when hit";
+					return buf;
+				},
+				"26": function (dict) { // Damage Reflect
+					var buf = "";
+					if (dict["dmg% reflect chance%"] < 100) buf += dict["dmg% reflect chance%"] + "% Chance ";
+					buf += dict["dmg% reflect low"];
+					if (dict["dmg% reflect low"] !== dict["dmg% reflect high"]) buf += "-"+dict["dmg reflect% high"];
+					buf += "% Damage Reflect";
+					return buf;
+				},
+				"29": function (dict) { // % Chance Def Ignore
+					return strFormat("%s%% Chance Ignore Def", dict["ignore def%"]);
+				},
+				"30": function (dict) { // BB Gauge threshold buff
+					var compType = dict["bb gauge above % buff requirement"] ? "above" : "below";
+					if (dict["bb gauge above % buff requirement"] === 100) return strFormat("%s when BB Gauge is full", defineStatBuffs(dict));
+					if (dict["bb gauge below % buff requirement"] === 100) return strFormat("%s when BB Gauge is not full", defineStatBuffs(dict));
+					return strFormat("%s when BB Gauge is %s %s%%", defineStatBuffs(dict), compType, dict["bb gauge "+compType+" % buff requirement"]);
+				},
+				"31": function (dict) { // Spark Damage
+					return strFormat("+%s%% Spark Damage", dict["damage% for spark"]);
+				},
+				"32": function (dict) { // BB Gauge Fill Rate
+					return strFormat("+%s%% BB Gauge Fill Rate", dict["bb gauge fill rate%"]);
+				},
 			}
 			passives.forEach(function (passive, index, passives) {
 				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive["passive id"] || "?"));
