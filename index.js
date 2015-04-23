@@ -43,19 +43,38 @@ var BF_Database = {
 					var buffs = [], descBuf = [], desc = "";
 					var statuses = {injury:"Injury",poison:"Poison",sick:"Sick",weaken:"Weaken",curse:"Curse",paralysis:"Paralyze"};
 					for (var status in statuses) if (dict[status+" resist%"]) buffs.push({status: statuses[status], value: dict[status+" resist%"]});
-					if (buffs.length === Object.keys(statuses).length) {
-						console.log("All statuses");
-						return strFormat("%s Status Ailments", buffs[0].value<100 ? (buffs[0].value+"% Resist") : "Invalidate");
-					}
 					for (var i = 0; i < buffs.length; i++) {
 						var buff = buffs[i];
 						desc += strFormat("%s %s", buff.value<100?(buff.value+"% Resist"):"Negate" , buff.status);
-						for (var j = i+1; j < buffs.length; j++)
+						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
 							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].status;
+						if (i === 0 && count === Object.keys(statuses).length) {
+							return strFormat("%s Status Ailments", buff.value<100 ? (buff.value+"% Resist") : "Invalidate");
+						}
 						descBuf.push(desc);
 						desc = "";
 					}
 					return descBuf.join(" ");
+				},
+				"5": function (dict) { // Resist Element Damage
+					var buffs = [], descBuf = [], desc = "";
+					var elements = {fire:"Fire",water:"Water",earth:"Earth",thunder:"Thunder",light:"Light",dark:"Dark"};
+					for (var element in elements) if (dict[element+" resist%"]) buffs.push({element: elements[element], value: dict[element+" resist%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%% %s", buff.value, buff.element);
+						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].element;
+						if (i === 0 && count === Object.keys(statuses).length) {
+							return strFormat("%s%% Element Resist", buff.value);
+						}
+						descBuf.push(desc+" Resist");
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				"8": function (dict) { // Mitigation
+					return strFormat("%s%% Dmg Mit", dict["dmg% mitigation"]);
 				},
 				"9": function (dict) { // BC per turn
 					return strFormat("%s BC/turn", dict["bc fill per turn"]);
@@ -68,6 +87,17 @@ var BF_Database = {
 					if (dict["hp above % buff requirement"] === 100) return strFormat("%s when HP is full", defineStatBuffs(dict));
 					if (dict["hp below % buff requirement"] === 100) return strFormat("%s when HP is not full", defineStatBuffs(dict));
 					return strFormat("%s when HP is %s %s%%", defineStatBuffs(dict), compType, dict["hp "+compType+" % buff requirement"]);
+				},
+				"13": function (dict) { // BC on Enemy Defeat
+					var buf = "";
+					if (dict["bc fill on enemy defeat chance%"] < 100) buf += dict["bc fill on enemy defeat chance%"] + "% Chance ";
+					buf += dict["bc fill on enemy defeat low"];
+					if (dict["bc fill on enemy defeat low"] !== dict["bc fill on enemy defeat high"]) buf += "-"+dict["bc fill on enemy defeat high"];
+					buf += " BC on Enemy Defeated";
+					return buf;
+				},
+				"14": function (dict) { // % Chance Reduce Damage
+					return strFormat("%s%% Chance Reduce Damage %s%%", dict["dmg reduction chance"], dict["dmg reduction%"]);
 				},
 				"17": function (dict) { // HP Drain
 					var buf = "";
@@ -105,7 +135,7 @@ var BF_Database = {
 					}
 					return descBuf.join(" ");
 				},
-				"21": function (dict) {
+				"21": function (dict) { // First X Turns Buffs
 					var buffs = [], descBuf = [], desc = "";
 					var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
 					var buffObj = {};
@@ -153,6 +183,16 @@ var BF_Database = {
 				},
 				"32": function (dict) { // BB Gauge Fill Rate
 					return strFormat("+%s%% BB Gauge Fill Rate", dict["bb gauge fill rate%"]);
+				},
+				"33": function (dict) { // Gradual Heal
+					var buf = "Heal ";
+					buf += dict["turn heal low"];
+					if (dict["turn heal low"] !== dict["turn heal high"]) buf += "-"+dict["dmg reflect% high"];
+					buf += " (+ "+dict["rec% added (turn heal)"]+"% REC) HP/turn";
+					return buf;
+				},
+				"34": function (dict) { // Crit Damage
+					return strFormat("+%d%% Crit Damage", dict["crit multiplier%"]);
 				},
 			}
 			passives.forEach(function (passive, index, passives) {
