@@ -28,15 +28,15 @@ var BF_Database = {
 					if (dict["crit% buff"]) buffs.push({stat: "Crit", value: dict["crit% buff"]});
 					for (var i = 0; i < buffs.length; i++) {
 						var buff = buffs[i];
-						desc += strFormat("%s%% %s", buff.value, buff.stat);
+						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
 						for (var j = i+1; j < buffs.length; j++)
 							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
 						descBuf.push(desc);
 						desc = "";
 					}
-					return descBuf.join(", ");
+					return "All Units: "+descBuf.join(" + ");
 				},
-				"2": function (dict) { // Stat Buffs
+				"2": function (dict) { // Element-Specific Stat Buffs
 					var buffs = [], descBuf = [], desc = "";
 					if (dict["hp% buff"]) buffs.push({stat: "HP", value: dict["hp% buff"]});
 					if (dict["atk% buff"]) buffs.push({stat: "ATK", value: dict["atk% buff"]});
@@ -51,7 +51,7 @@ var BF_Database = {
 						descBuf.push(desc);
 						desc = "";
 					}
-					return descBuf.join(", ");
+					return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + descBuf.join(" + ");
 				},
 			}
 			passives.forEach(function (passive, index, passives) {
