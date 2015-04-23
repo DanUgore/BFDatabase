@@ -39,6 +39,24 @@ var BF_Database = {
 				"2": function (dict) { // Element-Specific Stat Buffs
 					return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + defineStatBuffs(dict);
 				},
+				"4": function (dict) { // Resist Status Ailments
+					var buffs = [], descBuf = [], desc = "";
+					var statuses = {injury:"Injury",poison:"Poison",sick:"Sick",weaken:"Weaken",curse:"Curse",paralysis:"Paralyze"};
+					for (var status in statuses) if (dict[status+" resist%"]) buffs.push({status: statuses[status], value: dict[status+" resist%"]});
+					if (buffs.length === Object.keys(statuses).length) {
+						console.log("All statuses");
+						return strFormat("%s Status Ailments", buffs[0].value<100 ? (buffs[0].value+"% Resist") : "Invalidate");
+					}
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s %s", buff.value<100?(buff.value+"% Resist"):"Negate" , buff.status);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].status;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
 				"9": function (dict) { // BC per turn
 					return strFormat("%s BC/turn", dict["bc fill per turn"]);
 				},
@@ -73,9 +91,24 @@ var BF_Database = {
 					}
 					return descBuf.join(" ");
 				},
+				"20": function (dict) { // Inflict Status Ailments
+					var buffs = [], descBuf = [], desc = "";
+					var statuses = {injury:"Injury",poison:"Poison",sick:"Sick",weaken:"Weaken",curse:"Curse",paralysis:"Paralyze"};
+					for (var status in statuses) if (dict[status+"%"]) buffs.push({status: statuses[status], value: dict[status+"%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%s%% Inflict %s", buff.value>0?"+":"" , buff.value, buff.status);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].status;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				
 			}
 			passives.forEach(function (passive, index, passives) {
-				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive.id || "?"));
+				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive["passive id"] || "?"));
 				else effects.push(passiveIDs[passive["passive id"]](passive));
 			});
 			return effects.join(", ");
