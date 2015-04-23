@@ -294,6 +294,36 @@ var BF_Database = {
 				"61": function (dict) { // BC on Guard
 					return strFormat("%s BC on Guard", dict["bc filled on guard"]);
 				},
+				"62": function (dict) { // Elemental Mitigation
+					var unitsBuffed = [];
+					var elements = {fire:"Fire",water:"Water",earth:"Earth",thunder:"Thunder",light:"Light",dark:"Dark"};
+					for (var element in elements) 
+						if (dict["mitigate "+element+" attacks"]) unitsBuffed.push(elements[element]);
+					if (unitsBuffed.length < 6) return strFormat("Mitigate %s Damage %d%%", unitsBuffed.join("/"), dict["dmg% mitigation for elemental attacks"]);
+					return strFormat("Mitigate All Element Damage %s%%", dict["dmg% mitigation for elemental attacks"]);
+				},
+				"64": function (dict) { // BB Mod Buff
+					var buffs = [], descBuf = [], desc = "";
+					var bbtypes = {bb:"BB",sbb:"SBB",ubb:"UBB"};
+					for (var bbtype in bbtypes) if (dict[bbtype+" atk% buff"]) buffs.push({bbtype: bbtypes[bbtype], value: dict[bbtype+" atk% buff"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("+%s%% %s", buff.value, buff.bbtype);
+						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].bbtype;
+						descBuf.push(desc+" Mod");
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				"65": function (dict) { // BC On Spark
+					var buf = "";
+					if (dict["bc fill on crit%"] < 100) buf += dict["bc fill on crit%"] + "% Chance ";
+					buf += dict["bc fill on crit min"];
+					if (dict["bc fill on crit min"] !== dict["bc fill on crit max"]) buf += "-"+dict["bc fill on crit max"];
+					buf += " BC On Crit";
+					return buf;
+				},
 			}
 			passives.forEach(function (passive, index, passives) {
 				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive["passive id"] || "?"));
