@@ -20,11 +20,8 @@ var BF_Database = {
 			passives = [].concat(passives); // Make passives an array.
 			var defineStatBuffs = function (dict) {
 					var buffs = [], descBuf = [], desc = "";
-					if (dict["hp% buff"]) buffs.push({stat: "HP", value: dict["hp% buff"]});
-					if (dict["atk% buff"]) buffs.push({stat: "ATK", value: dict["atk% buff"]});
-					if (dict["def% buff"]) buffs.push({stat: "DEF", value: dict["def% buff"]});
-					if (dict["rec% buff"]) buffs.push({stat: "REC", value: dict["rec% buff"]});
-					if (dict["crit% buff"]) buffs.push({stat: "Crit", value: dict["crit% buff"]});
+					var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
+					for (var stat in stats) if (dict[stat+"% buff"]) buffs.push({stat: stats[stat], value: dict[stat+"% buff"]});
 					for (var i = 0; i < buffs.length; i++) {
 						var buff = buffs[i];
 						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
@@ -33,7 +30,7 @@ var BF_Database = {
 						descBuf.push(desc);
 						desc = "";
 					}
-					return descBuf.join(" + ");
+					return descBuf.join(" ");
 			}
 			passiveIDs = {
 				"1": function (dict) { // Stat Buffs
@@ -42,17 +39,39 @@ var BF_Database = {
 				"2": function (dict) { // Element-Specific Stat Buffs
 					return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + defineStatBuffs(dict);
 				},
-				"9": function (dict) {
+				"9": function (dict) { // BC per turn
 					return strFormat("%s BC/turn", dict["bc fill per turn"]);
 				},
-				"10": function (dict) {
+				"10": function (dict) { // HC Effectiveness
 					return strFormat("%s%% HC Effectiveness", dict["hc effectiveness"]);
 				},
-				"11": function (dict) {
+				"11": function (dict) { // HP threshold buff
 					var compType = dict["hp above % buff requirement"] ? "above" : "below";
-					if (dict["hp above % buff requirement"] === 100) return strFormat("%s when HP is full", defineStatBuffs(dict), dict[]);
-					if (dict["hp below % buff requirement"] === 100) return strFormat("%s when HP is not full", defineStatBuffs(dict), dict[]);
+					if (dict["hp above % buff requirement"] === 100) return strFormat("%s when HP is full", defineStatBuffs(dict));
+					if (dict["hp below % buff requirement"] === 100) return strFormat("%s when HP is not full", defineStatBuffs(dict));
 					return strFormat("%s when HP is %s %s%%", defineStatBuffs(dict), compType, dict["hp "+compType+" % buff requirement"]);
+				},
+				"17": function (dict) { // HP Drain
+					var buf = "";
+					if (dict["hp drain chance%"] < 100) buf += dict["hp drain chance%"] + "% Chance ";
+					buf += dict["hp drain% low"];
+					if (dict["hp drain% low"] !== dict["hp drain% high"]) buf += "-"+dict["hp drain% high"];
+					buf += "% HP Drain";
+					return buf;
+				},
+				"19": function (dict) { // Drop Rate Buff
+					var buffs = [], descBuf = [], desc = "";
+					var stats = {bc:"BC",hc:"HC",karma:"Karma",zel:"Zel",item:"Item"};
+					for (var stat in stats) if (dict[stat+" drop rate% buff"]) buffs.push({stat: stats[stat], value: dict[stat+" drop rate% buff"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc+" Drop Rate");
+						desc = "";
+					}
+					return descBuf.join(" ");
 				},
 			}
 			passives.forEach(function (passive, index, passives) {
