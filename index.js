@@ -53,6 +53,14 @@ var BF_Database = {
 					}
 					return descBuf.join(", ");
 				},
+				"4": function(dict){ //Status Null
+					var buffs = [], descBuf = [], desc = "";
+					if(dict["curse resist%"]) buffs.push({stat: "curse resist", value: dict["curse resist%"]});
+					if(dict["injury resist%"]) buffs.push({stat: "injury resist", value: dict["injury resist%"]});
+						if(dict["paralysis resist%"]) buffs.push({stat: "paralysis resist", value: dict["paralysis resist%"]});
+							if(dict[" resist%"])
+								if(dict[" resist%"])
+				}
 			}
 			passives.forEach(function (passive, index, passives) {
 				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive.id || "?"));
