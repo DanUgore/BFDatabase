@@ -18,45 +18,317 @@ var BF_Database = {
 		var definePassive = function (passives) {
 			var effects = [];
 			passives = [].concat(passives); // Make passives an array.
-			passiveIDs = {
-				"1": function (dict) { // Stat Buffs
+			var defineStatBuffs = function (dict) {
 					var buffs = [], descBuf = [], desc = "";
-					if (dict["hp% buff"]) buffs.push({stat: "HP", value: dict["hp% buff"]});
-					if (dict["atk% buff"]) buffs.push({stat: "ATK", value: dict["atk% buff"]});
-					if (dict["def% buff"]) buffs.push({stat: "DEF", value: dict["def% buff"]});
-					if (dict["rec% buff"]) buffs.push({stat: "REC", value: dict["rec% buff"]});
-					if (dict["crit% buff"]) buffs.push({stat: "Crit", value: dict["crit% buff"]});
+					var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
+					for (var stat in stats) if (dict[stat+"% buff"]) buffs.push({stat: stats[stat], value: dict[stat+"% buff"]});
 					for (var i = 0; i < buffs.length; i++) {
 						var buff = buffs[i];
 						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
 						for (var j = i+1; j < buffs.length; j++)
 							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						if (desc.substr(-14) === "HP/ATK/DEF/REC") desc = strFormat("%s%s%% All Stats", buff.value>0?"+":"" , buff.value);
 						descBuf.push(desc);
 						desc = "";
 					}
-					return "All Units: "+descBuf.join(" + ");
+					return descBuf.join(" ");
+			}
+			passiveIDs = {
+				"1": function (dict) { // Stat Buffs
+					return "All Units: "+defineStatBuffs(dict);
 				},
 				"2": function (dict) { // Element-Specific Stat Buffs
+					return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + defineStatBuffs(dict);
+				},
+				"4": function (dict) { // Resist Status Ailments
 					var buffs = [], descBuf = [], desc = "";
-					if (dict["hp% buff"]) buffs.push({stat: "HP", value: dict["hp% buff"]});
-					if (dict["atk% buff"]) buffs.push({stat: "ATK", value: dict["atk% buff"]});
-					if (dict["def% buff"]) buffs.push({stat: "DEF", value: dict["def% buff"]});
-					if (dict["rec% buff"]) buffs.push({stat: "REC", value: dict["rec% buff"]});
-					if (dict["crit% buff"]) buffs.push({stat: "Crit", value: dict["crit% buff"]});
+					var statuses = {injury:"Injury",poison:"Poison",sick:"Sick",weaken:"Weaken",curse:"Curse",paralysis:"Paralyze"};
+					for (var status in statuses) if (dict[status+" resist%"]) buffs.push({status: statuses[status], value: dict[status+" resist%"]});
 					for (var i = 0; i < buffs.length; i++) {
 						var buff = buffs[i];
-						desc += strFormat("%s%% %s", buff.value, buff.stat);
-						for (var j = i+1; j < buffs.length; j++)
-							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						desc += strFormat("%s %s", buff.value<100?(buff.value+"% Resist"):"Negate" , buff.status);
+						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].status;
+						if (i === 0 && count === Object.keys(statuses).length) {
+							return strFormat("%s Status Ailments", buff.value<100 ? (buff.value+"% Resist") : "Invalidate");
+						}
 						descBuf.push(desc);
 						desc = "";
 					}
-					return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + descBuf.join(" + ");
+					return descBuf.join(" ");
+				},
+				"5": function (dict) { // Resist Element Damage
+					var buffs = [], descBuf = [], desc = "";
+					var elements = {fire:"Fire",water:"Water",earth:"Earth",thunder:"Thunder",light:"Light",dark:"Dark"};
+					for (var element in elements) if (dict[element+" resist%"]) buffs.push({element: elements[element], value: dict[element+" resist%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%% %s", buff.value, buff.element);
+						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].element;
+						if (i === 0 && count === Object.keys(elements).length) {
+							return strFormat("%s%% Element Resist", buff.value);
+						}
+						descBuf.push(desc+" Resist");
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				"8": function (dict) { // Mitigation
+					return strFormat("%s%% Dmg Mit", dict["dmg% mitigation"]);
+				},
+				"9": function (dict) { // BC per turn
+					return strFormat("%s BC/turn", dict["bc fill per turn"]);
+				},
+				"10": function (dict) { // HC Effectiveness
+					return strFormat("%s%% HC Effectiveness", dict["hc effectiveness"]);
+				},
+				"11": function (dict) { // HP threshold buff
+					var compType = dict["hp above % buff requirement"] ? "above" : "below";
+					if (dict["hp above % buff requirement"] === 100) return strFormat("%s when HP is full", defineStatBuffs(dict));
+					if (dict["hp below % buff requirement"] === 100) return strFormat("%s when HP is not full", defineStatBuffs(dict));
+					return strFormat("%s when HP is %s %s%%", defineStatBuffs(dict), compType, dict["hp "+compType+" % buff requirement"]);
+				},
+				"13": function (dict) { // BC on Enemy Defeat
+					var buf = "";
+					if (dict["bc fill on enemy defeat chance%"] < 100) buf += dict["bc fill on enemy defeat chance%"] + "% Chance ";
+					buf += dict["bc fill on enemy defeat low"];
+					if (dict["bc fill on enemy defeat low"] !== dict["bc fill on enemy defeat high"]) buf += "-"+dict["bc fill on enemy defeat high"];
+					buf += " BC on Enemy Defeated";
+					return buf;
+				},
+				"14": function (dict) { // % Chance Reduce Damage
+					return strFormat("%s%% Chance Reduce Damage %s%%", dict["dmg reduction chance"], dict["dmg reduction%"]);
+				},
+				"17": function (dict) { // HP Drain
+					var buf = "";
+					if (dict["hp drain chance%"] < 100) buf += dict["hp drain chance%"] + "% Chance ";
+					buf += dict["hp drain% low"];
+					if (dict["hp drain% low"] !== dict["hp drain% high"]) buf += "-"+dict["hp drain% high"];
+					buf += "% HP Drain";
+					return buf;
+				},
+				"19": function (dict) { // Drop Rate Buff
+					var buffs = [], descBuf = [], desc = "";
+					var stats = {bc:"BC",hc:"HC",karma:"Karma",zel:"Zel",item:"Item"};
+					for (var stat in stats) if (dict[stat+" drop rate% buff"]) buffs.push({stat: stats[stat], value: dict[stat+" drop rate% buff"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc+" Drop Rate");
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				"20": function (dict) { // Inflict Status Ailments
+					var buffs = [], descBuf = [], desc = "";
+					var statuses = {injury:"Injury",poison:"Poison",sick:"Sick",weaken:"Weaken",curse:"Curse",paralysis:"Paralyze"};
+					for (var status in statuses) if (dict[status+"%"]) buffs.push({status: statuses[status], value: dict[status+"%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%s%% Inflict %s", buff.value>0?"+":"" , buff.value, buff.status);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].status;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				"21": function (dict) { // First X Turns Buffs
+					var buffs = [], descBuf = [], desc = "";
+					var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
+					var buffObj = {};
+					if (dict["first x turns atk% (1)"]) buffObj["atk% buff"] = dict["first x turns atk% (1)"];
+					if (dict["first x turns def% (3)"]) buffObj["def% buff"] = dict["first x turns def% (3)"];
+					if (dict["first x turns rec% (5)"]) buffObj["rec% buff"] = dict["first x turns rec% (5)"];
+					if (dict["first x turns crit% (7)"]) buffObj["crit% buff"] = dict["first x turns crit% (7)"];
+					return strFormat("%s for First %s Turns", defineStatBuffs(buffObj), dict["first x turns"]);
+				},
+				"24": function (dict) { // Damage to HP on hit
+					var buf = "";
+					if (dict["dmg% to hp% when attacked chance%"] < 100) buf += dict["dmg% to hp% when attacked chance%"] + "% Chance ";
+					buf += dict["dmg% to hp% when attacked low"];
+					if (dict["dmg% to hp% when attacked low"] !== dict["dmg% to hp% when attacked high"]) buf += "-"+dict["dmg% to hp% when attacked high"];
+					buf += "% DMG to HP when hit";
+					return buf;
+				},
+				"25": function (dict) { // BC On Hit
+					var buf = "";
+					if (dict["bc fill when attacked chance%"] < 100) buf += dict["bc fill when attacked chance%"] + "% Chance ";
+					buf += dict["bc fill when attacked low"];
+					if (dict["bc fill when attacked low"] !== dict["bc fill when attacked high"]) buf += "-"+dict["bc fill when attacked high"];
+					buf += " BC when hit";
+					return buf;
+				},
+				"26": function (dict) { // Damage Reflect
+					var buf = "";
+					if (dict["dmg% reflect chance%"] < 100) buf += dict["dmg% reflect chance%"] + "% Chance ";
+					buf += dict["dmg% reflect low"];
+					if (dict["dmg% reflect low"] !== dict["dmg% reflect high"]) buf += "-"+dict["dmg reflect% high"];
+					buf += "% Damage Reflect";
+					return buf;
+				},
+				"29": function (dict) { // % Chance Def Ignore
+					return strFormat("%s%% Chance Ignore Def", dict["ignore def%"]);
+				},
+				"30": function (dict) { // BB Gauge threshold buff
+					var compType = dict["bb gauge above % buff requirement"] ? "above" : "below";
+					if (dict["bb gauge above % buff requirement"] === 100) return strFormat("%s when BB Gauge is full", defineStatBuffs(dict));
+					if (dict["bb gauge below % buff requirement"] === 100) return strFormat("%s when BB Gauge is not full", defineStatBuffs(dict));
+					return strFormat("%s when BB Gauge is %s %s%%", defineStatBuffs(dict), compType, dict["bb gauge "+compType+" % buff requirement"]);
+				},
+				"31": function (dict) { // Spark Damage
+					return strFormat("+%s%% Spark Damage", dict["damage% for spark"]);
+				},
+				"32": function (dict) { // BB Gauge Fill Rate
+					return strFormat("+%s%% BB Gauge Fill Rate", dict["bb gauge fill rate%"]);
+				},
+				"33": function (dict) { // Gradual Heal
+					var buf = "Heal ";
+					buf += dict["turn heal low"];
+					if (dict["turn heal low"] !== dict["turn heal high"]) buf += "-"+dict["dmg reflect% high"];
+					buf += " (+ "+dict["rec% added (turn heal)"]+"% REC) HP/turn";
+					return buf;
+				},
+				"34": function (dict) { // Crit Damage
+					return strFormat("+%d%% Crit Damage", dict["crit multiplier%"]);
+				},
+				"35": function (dict) { // BC On Attack
+					var buf = "";
+					if (dict["bc fill when attacking chance%"] < 100) buf += dict["bc fill when attacking chance%"] + "% Chance ";
+					buf += dict["bc fill when attacking low"];
+					if (dict["bc fill when attacking low"] !== dict["bc fill when attacking high"]) buf += "-"+dict["bc fill when attacking high"];
+					buf += " BC On Attack";
+					return buf;
+				},
+				"36": function (dict) { return "Unused (36)"; }, // Additional Actions?
+				"37": function (dict) { // Extra Hits
+					var buf = strFormat("Hit Count +%s", dict["hit increase/hit"]);
+					if (dict["dmg% buff on extra hits"]) buf += strFormat("(%s%s%% Damage)", (dict["dmg% buff on extra hits"]>0?"+":""), dict["dmg% buff on extra hits"]);
+					return buf;
+				},
+				"40": function (dict) { return "Unused (40)"; }, // Convert Stat to Buffs?
+				"41": function (dict) { // N Unique Elements Buffs (Five Lights)
+					return strFormat("%s with %s unique elements", defineStatBuffs(dict), dict["unique elements required"]);
+				},
+				"42": function (dict) { // Gender Buffs
+					var gender = dict["gender required"].charAt(0).toUpperCase() + dict["gender required"].substr(1);
+					return strFormat("%s Units: %s", gender, defineStatBuffs(dict));
+				},
+				"43": function (dict) { // % Chance take 1 damage
+					return strFormat("%s%% Chance to take 1 damage", dict["take 1 dmg%"]);
+				},
+				"45": function (dict) { // Crit Resist
+					var buf = "";
+					if (dict["base crit% resist"]) {
+						buf += dict["base crit% resist"] + "% Base";
+						if (dict["buff crit% resist"]) {
+							if (dict["base crit% resist"] === dict["base crit% resist"]) {
+								buf += "/Buff";
+							} else {
+								buf += " & "+dict["buff crit% resist"] + "% Buff";
+							}
+						}
+					} else if (dict["buff crit% resist"]) {
+						buf += dict["buff crit% resist"] + "% Buff";
+					}
+					return buf+" Crit Resist";
+				},
+				"46": function (dict) { // HP Proportional ATK Buff
+					return strFormat("%s-%s%% ATK depending on HP %s", dict["atk% base buff"], dict["atk% extra buff based on hp"], dict["buff proportional to hp"]);
+				},
+				"47": function (dict) { // BC On Spark
+					var buf = "";
+					if (dict["bc fill on spark%"] < 100) buf += dict["bc fill on spark%"] + "% Chance ";
+					buf += dict["bc fill on spark low"];
+					if (dict["bc fill on spark low"] !== dict["bc fill on spark high"]) buf += "-"+dict["bc fill on spark high"];
+					buf += " BC On Spark";
+					return buf;
+				},
+				"48": function (dict) { // Reduce BB Cost
+					return strFormat("Reduce BB Cost %s%%", dict["reduced bb bc cost%"]);
+				},
+				"49": function (dict) { // Reduce BB Used
+					var buf = "";
+					if (dict["reduced bb bc use chance%"] < 100) buf += dict["reduced bb bc use chance%"] + "% Chance ";
+					buf += dict["reduced bb bc use% low"];
+					if (dict["reduced bb bc use% low"] !== dict["reduced bb bc use% high"]) buf += "-"+dict["reduced bb bc use% high"];
+					buf += "% BB Cashback";
+					return buf;
+				},
+				"50": function (dict) { // Elemental Weakness Buff
+					var unitsBuffed = [];
+					var elements = {fire:"Fire",water:"Water",earth:"Earth",thunder:"Thunder",light:"Light",dark:"Dark"};
+					for (var element in elements) 
+						if (dict[element+" units do extra elemental weakness dmg"]) unitsBuffed.push(elements[element]);
+					if (unitsBuffed.length < 6) return strFormat("%s Units: +%s%% Weakness Damage", unitsBuffed.join("/"), dict["elemental weakness multiplier%"]);
+					return strFormat("All Units: +%s%% Weakness Damage", dict["elemental weakness multiplier%"]);
+				},
+				"53": function (dict) { // Element Weakness Resist
+					var buf = "";
+					if (dict["strong base element damage resist"]) {
+						buf += dict["strong base element damage resist"] + "% Base";
+						if (dict["strong buffed element damage resist"]) {
+							if (dict["strong base element damage resist"] === dict["strong base element damage resist"]) {
+								buf += "/Buffed";
+							} else {
+								buf += " & "+dict["strong buffed element damage resist"] + "% Buffed";
+							}
+						}
+					} else if (dict["strong buffed element damage resist"]) {
+						buf += dict["strong buffed element damage resist"] + "% Buffed";
+					}
+					return buf+" Element Weakness Resist";
+				},
+				"55": function (dict) { // Angel Idol
+					return strFormat("Angel Idol Buff when HP below ", dict["hp below % buff activation"]);
+				},
+				"58": function (dict) { // Increase Guard Mit
+					return strFormat("+%s%% Mit when Guarding", dict["guard increase mitigation%"]);
+				},
+				"59": function (dict) { // BC on Hit while Guarding
+					return strFormat("%s BC when hit while Guarding", dict["bc filled when attacked while guarded"]);
+				},
+				"61": function (dict) { // BC on Guard
+					return strFormat("%s BC on Guard", dict["bc filled on guard"]);
+				},
+				"62": function (dict) { // Elemental Mitigation
+					var unitsBuffed = [];
+					var elements = {fire:"Fire",water:"Water",earth:"Earth",thunder:"Thunder",light:"Light",dark:"Dark"};
+					for (var element in elements) 
+						if (dict["mitigate "+element+" attacks"]) unitsBuffed.push(elements[element]);
+					if (unitsBuffed.length < 6) return strFormat("Mitigate %s Damage %d%%", unitsBuffed.join("/"), dict["dmg% mitigation for elemental attacks"]);
+					return strFormat("Mitigate All Element Damage %s%%", dict["dmg% mitigation for elemental attacks"]);
+				},
+				"64": function (dict) { // BB Mod Buff
+					var buffs = [], descBuf = [], desc = "";
+					var bbtypes = {bb:"BB",sbb:"SBB",ubb:"UBB"};
+					for (var bbtype in bbtypes) if (dict[bbtype+" atk% buff"]) buffs.push({bbtype: bbtypes[bbtype], value: dict[bbtype+" atk% buff"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("+%s%% %s", buff.value, buff.bbtype);
+						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].bbtype;
+						descBuf.push(desc+" Mod");
+						desc = "";
+					}
+					return descBuf.join(" ");
+				},
+				"65": function (dict) { // BC On Spark
+					var buf = "";
+					if (dict["bc fill on crit%"] < 100) buf += dict["bc fill on crit%"] + "% Chance ";
+					buf += dict["bc fill on crit min"];
+					if (dict["bc fill on crit min"] !== dict["bc fill on crit max"]) buf += "-"+dict["bc fill on crit max"];
+					buf += " BC On Crit";
+					return buf;
 				},
 			}
 			passives.forEach(function (passive, index, passives) {
-				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive.id || "?"));
-				else effects.push(passiveIDs[passive["passive id"]](passive));
+				if (passiveIDs[passive["passive id"]]) effects.push(passiveIDs[passive["passive id"]](passive));
+				else if (passive["passive id"]) effects.push(strFormat("Unrecognized Passive (%s)", passive["passive id"]));
+				else effects.push(strFormat("Unknown Passive (%s)", passive["unknown passive id"]));
 			});
 			return effects.join(", ");
 		};
@@ -84,6 +356,8 @@ var BF_Database = {
 					queue.push(str);
 					str = strFormat("%s | %s", formatDict(unit['stats']['_lord'], path+'[stats][_lord]'), formatDict(unit['imp'], path+'[imp]'));
 					queue.push(str);
+					if (unit['leader skill']) queue.push("LS: "+formatDict(unit['leader skill'], "ls"));
+					if (unit['extra skill']) queue.push("ES: "+formatDict(unit['extra skill'], "es"));
 					if (unit['bb']) {
 						var bbinfo = "BB: " + formatDict(unit['bb'], 'bb');
 						queue.push(bbinfo);
@@ -234,7 +508,11 @@ var BF_Database = {
 					var formatCondition = function (prop) {
 						var effStr = "", cond = dict[prop];
 						switch (prop) {
-							case "item required": return strFormat("%s = %s", prop, (BFData.getItem(cond) || BFData.getItemJP(cond) || {}).name || ("Unknown Item ID: "+cond));
+							case "item required":
+								var name = "";
+								for (var game in BFData.versions)
+									if (!name && BFData[game].getItem(cond)) name = BFData[game].getItem(cond).name;
+								return strFormat("%s = %s", prop, name || ("Unknown Item ID: "+cond));
 							case "unit required":
 								var units = cond.map(function (unit) {
 									return unit.name || (BFData.getUnit(unit.id) || BFData.JP.getUnit(unit.id) || {}).name || ("Unknown Unit ID: "+cond);
@@ -282,6 +560,12 @@ var BF_Database = {
 					};
 					return buf + effects.sort().map(formatEffect).join(", ");
 
+				case "es":
+					buf += strFormat("Conditions: %s | ", dict["conditions"].map(function(con){return formatDict(con, "condition");}).join(", "));
+				case "ls":
+					buf += definePassive(dict.effects);
+					return buf;
+				
 				case "bb":
 					var bb = dict;
 					// buf += dict.name;
@@ -364,7 +648,10 @@ var BF_Database = {
 					buf += strFormat("%s - %s", dict.name, dict.desc);
 					queue.push(buf);
 					if (dict["type"] === "sphere") queue.push(strFormat("%s Type Sphere", dict['sphere type text']));
-					if (dict["effect"]) queue.push(formatItemDict(dict.effect, '[effect]'));
+					if (dict["effect"]) {
+						if (Array.isArray(dict["effect"])) queue.push(definePassive(dict.effect));
+						else queue.push(formatItemDict(dict.effect, '[effect]'));
+					}
 					return queue;
 				
 				case '[effect]':
@@ -386,6 +673,18 @@ var BF_Database = {
 						queue.push(strFormat("%d) %s", i, effect));
 					}
 					return queue;
+				case '[recipe]':
+					var karma = Number(dict['karma']) || 0;
+					if (karma) buf += strFormat("Cost: %d Karma | ", karma);
+					buf += "Materials: ";
+					buf += dict['materials'].map(function (mat) {
+						var name = "";
+						for (var game in BFData.versions)
+							if (!name && BFData[game].getItem(mat.id)) name = BFData[game].getItem(mat.id).name;
+						return strFormat("%s x%d", name || "Unknown Item ("+mat.id+")", mat.count);
+					}).join(", ");
+					return buf;
+				
 				case 'effect': // Internal case used by the [effect] path
 					var effects = Object.keys(dict);
 					var formatEffect = function (prop) {
