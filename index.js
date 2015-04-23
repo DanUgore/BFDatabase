@@ -66,7 +66,7 @@ var BF_Database = {
 						desc += strFormat("%s%% %s", buff.value, buff.element);
 						for (var j = i+1, count = 1; j < buffs.length; j++, count++)
 							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].element;
-						if (i === 0 && count === Object.keys(statuses).length) {
+						if (i === 0 && count === Object.keys(elements).length) {
 							return strFormat("%s%% Element Resist", buff.value);
 						}
 						descBuf.push(desc+" Resist");
