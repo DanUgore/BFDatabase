@@ -53,6 +53,71 @@ var BF_Database = {
 					}
 					return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + descBuf.join(" + ");
 				},
+				"4": function(dict){ //Status Null
+					var buffs = [], descBuf = [], desc = "";
+					if(dict["curse resist%"]) buffs.push({stat: "curse resist", value: dict["curse resist%"]});
+					if(dict["injury resist%"]) buffs.push({stat: "injury resist", value: dict["injury resist%"]});
+					if(dict["paralysis resist%"]) buffs.push({stat: "paralysis resist", value: dict["paralysis resist%"]});
+					if(dict["poison resist%"]) buffs.push({stat: "poison resist", value: dict["poison resist%"]});
+					if(dict["sick resist%"]) buffs.push({stat: "sick resist", value: dict["sick resist%"]});
+					if(dict["weaken resist%"]) buffs.push({stat: "weaken resist", value: dict["weaken resist%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%% %s", buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(", ");	
+				},
+				"5": function(dict){ //Elemental Resistance
+					var buffs = [], descBuf = [], desc = "";
+					if(dict["earth resist%"]) buffs.push({stat: "earth resist", value: dict["earth resist%"]});
+					if(dict["water resist%"]) buffs.push({stat: "water resist", value: dict["water resist%"]});
+					if(dict["thunder resist%"]) buffs.push({stat: "thunder resist", value: dict["thunder resist%"]});
+					if(dict["dark resist%"]) buffs.push({stat: "dark resist", value: dict["dark resist%"]});
+					if(dict["fire resist%"]) buffs.push({stat: "fire resist", value: dict["fire resist%"]});
+					if(dict["light resist%"]) buffs.push({stat: "light resist", value: dict["light resist%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%% %s", buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(", ");	
+				},
+				"13": function(dict){//bc fill on enemy defeat
+					var buffs = [], descBuf = [], desc = "";
+					if(dict["bc fill on enemy defeat high"]) buffs.push({stat: "bc fill on enemy defeat high", value: dict["bc fill on enemy defeat high"]});
+					if(dict["bc fill on enemy defeat low"]) buffs.push({stat: "bc fill on enemy defeat low", value: dict["bc fill on enemy defeat low"]}]);
+					if(dict["bc fill on enemy defeat%"]) buffs.push({stat: "bc fill on enemy defeat%", value: dict});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%% %s", buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(", ");
+				},
+				"14": function(dict){//chanced damage reduction
+					var buffs = [], descBuf = [], desc = "";
+					if(dict["dmg reduction chance%"]) buffs.push({stat: "dmg reduction chance%", value: dict["dmg reduction chance%"]});
+					if(dict["dmg reduction%"]) buffs.push({stat: "dmg reduction%", value: dict["dmg reduction%"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%% %s", buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc);
+						desc = "";
+					}
+					return descBuf.join(", ");
+				}
 			}
 			passives.forEach(function (passive, index, passives) {
 				if (!passiveIDs[passive["passive id"]]) effects.push(strFormat("Unknown Passive (%s)", passive.id || "?"));
