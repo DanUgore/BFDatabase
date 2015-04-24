@@ -124,6 +124,7 @@ BFData.updateData = function (force) { // Can be a boolean (force all), a string
 		}[dataType];
 		try {
 			BFData[gameType][propName] = JSON.parse(data);
+			console.log(gameType+"["+propName+"] Updated");
 			
 			fs.rename(datadir+filename+".json", datadir+filename+"_bkup.json", function callback(err) { // Backup Old Data
 
@@ -316,7 +317,8 @@ BFData.JP.findUnit = BFData.findUnitJP = function (name, returnAll) {
 		"duel-sgx": 60255,
 		"maxwell": 50525,
 		"xenon": 60723,
-		"xestia": 50724
+		"xestia": 50724,
+		"yuura": 60736
 	};
 	if (name in UNIT_EXCEPTIONS) return unitDataJP[UNIT_EXCEPTIONS[name]];
 	var isID = !!(name.match(/^\d{5}\d?$/));
