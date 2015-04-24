@@ -74,7 +74,9 @@ if (fs.existsSync(lastUpdatedFile)) {
 		lastUpdated = require(lastUpdatedFile);
 	} catch (e) {}
 }
-BFData.last_updated = lastUpdated;
+BFData.checkLastUpdated = function () {
+	return Object.keys(lastUpdated).map(function(k){return k+": "+lastUpdated[k];}).join(", ");
+}
 
 BFData.updateData = function (force) { // Can be a boolean (force all), a string (force one), or an array (force these)
 	var baseUrl = "https://raw.githubusercontent.com/Deathmax/bravefrontier_data/master";
