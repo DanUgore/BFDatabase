@@ -84,7 +84,7 @@ BFData.updateData = function (force) { // Can be a boolean (force all), a string
 		if (force === true) {
 			for (var gameType in forceUpdate) forceUpdate[gameType] = true;
 		} else if (typeof force === 'string') {
-			forceUpdate[force[i]] = true;
+			forceUpdate[force] = true;
 		} else if (Array.isArray(force)) {
 			for (var i = 0; i < force.length; i++) forceUpdate[force[i]] = true;
 		}
@@ -121,8 +121,7 @@ BFData.updateData = function (force) { // Can be a boolean (force all), a string
 			evos: 'Evos',
 		}[dataType];
 		try {
-		
-			BFData[gameType.toUpperCase()][propName] = JSON.parse(data);
+			BFData[gameType][propName] = JSON.parse(data);
 			
 			fs.rename(datadir+filename+".json", datadir+filename+"_bkup.json", function callback(err) { // Backup Old Data
 
@@ -176,6 +175,7 @@ BFData.updateData = function (force) { // Can be a boolean (force all), a string
 		console.log('Requesting '+baseUrl+dir+'/last_update.txt');
 		request(baseUrl+dir+'/last_update.txt', updateUrlHandler.bind(null, dir));
 	}
+	return true;
 }
 BFData.reloadData = function () {
 	// Remove old data from require cache
