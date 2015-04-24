@@ -33,6 +33,7 @@ var BF_Database = {
 					}
 					return descBuf.join(" ");
 			}
+			// var defineDropBuffs = function () {} Consider it.
 			passiveIDs = {
 				"1": function (dict) { // Stat Buffs
 					return "All Units: "+defineStatBuffs(dict);
@@ -83,11 +84,28 @@ var BF_Database = {
 				"10": function (dict) { // HC Effectiveness
 					return strFormat("%s%% HC Effectiveness", dict["hc effectiveness"]);
 				},
-				"11": function (dict) { // HP threshold buff
+				"11": function (dict) { // HP Threshold Stat Buffs
 					var compType = dict["hp above % buff requirement"] ? "above" : "below";
 					if (dict["hp above % buff requirement"] === 100) return strFormat("%s when HP is full", defineStatBuffs(dict));
 					if (dict["hp below % buff requirement"] === 100) return strFormat("%s when HP is not full", defineStatBuffs(dict));
 					return strFormat("%s when HP is %s %s%%", defineStatBuffs(dict), compType, dict["hp "+compType+" % buff requirement"]);
+				},
+				"12": function (dict) { // HP Threshold Drop Rate Buffs 
+					var buffs = [], descBuf = [], desc = "";
+					var stats = {bc:"BC",hc:"HC",karma:"Karma",zel:"Zel",item:"Item"};
+					for (var stat in stats) if (dict[stat+" drop rate% buff"]) buffs.push({stat: stats[stat], value: dict[stat+" drop rate% buff"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc+" Drop Rate");
+						desc = "";
+					}
+					var compType = dict["hp above % buff requirement"] ? "above" : "below";
+					if (dict["hp above % buff requirement"] === 100) return strFormat("%s when HP is full", descBuf.join(" "));
+					if (dict["hp below % buff requirement"] === 100) return strFormat("%s when HP is not full", descBuf.join(" "));
+					return strFormat("%s when HP is %s %s%%", descBuf.join(" "), compType, dict["hp "+compType+" % buff requirement"]);
 				},
 				"13": function (dict) { // BC on Enemy Defeat
 					var buf = "";
@@ -180,7 +198,21 @@ var BF_Database = {
 					return strFormat("%s when BB Gauge is %s %s%%", defineStatBuffs(dict), compType, dict["bb gauge "+compType+" % buff requirement"]);
 				},
 				"31": function (dict) { // Spark Damage
-					return strFormat("+%s%% Spark Damage", dict["damage% for spark"]);
+					var queue = [];
+					if (dict["damage% for spark"]) queue.push(strFormat("+%s%% Spark Damage", dict["damage% for spark"]));
+					var buffs = [], descBuf = [], desc = "";
+					var stats = {bc:"BC",hc:"HC",karma:"Karma",zel:"Zel",item:"Item"};
+					for (var stat in stats) if (dict[stat+" drop% for spark"]) buffs.push({stat: stats[stat], value: dict[stat+" drop% for spark"]});
+					for (var i = 0; i < buffs.length; i++) {
+						var buff = buffs[i];
+						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+						for (var j = i+1; j < buffs.length; j++)
+							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+						descBuf.push(desc+" Drop Rate");
+						desc = "";
+					}
+					queue.push(descBuf.join(" ")+" on Spark");
+					return queue.join(" & ");
 				},
 				"32": function (dict) { // BB Gauge Fill Rate
 					return strFormat("+%s%% BB Gauge Fill Rate", dict["bb gauge fill rate%"]);
@@ -188,7 +220,7 @@ var BF_Database = {
 				"33": function (dict) { // Gradual Heal
 					var buf = "Heal ";
 					buf += dict["turn heal low"];
-					if (dict["turn heal low"] !== dict["turn heal high"]) buf += "-"+dict["dmg reflect% high"];
+					if (dict["turn heal low"] !== dict["turn heal high"]) buf += "-"+dict["turn heal high"];
 					buf += " (+ "+dict["rec% added (turn heal)"]+"% REC) HP/turn";
 					return buf;
 				},
@@ -316,7 +348,7 @@ var BF_Database = {
 					}
 					return descBuf.join(" ");
 				},
-				"65": function (dict) { // BC On Spark
+				"65": function (dict) { // BC On Crit
 					var buf = "";
 					if (dict["bc fill on crit%"] < 100) buf += dict["bc fill on crit%"] + "% Chance ";
 					buf += dict["bc fill on crit min"];
