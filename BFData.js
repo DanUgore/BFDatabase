@@ -164,6 +164,9 @@ BFData.updateData = function (force) { // Can be a boolean (force all), a string
 		if (!last_updated) last_updated = lastUpdated[gameType];
 		if (forceUpdate[gameType] || last_updated > lastUpdated[gameType]) {
 			if (forceUpdate[gameType]) console.log("Forcing update of "+gameType+" data.");
+			if (evoChainCacheDict) {
+				evoChainCacheDict[gameType] = {}; console.log("Clearing Evo Cache "+gameType); // Clear Evo Cache (Old Data is Stored Here)
+			}
 			console.log('Downloading '+gameType+' data.');
 			lastUpdated[gameType] = last_updated;
 			fs.writeFile(lastUpdatedFile, JSON.stringify(lastUpdated, null, '\t'));
@@ -189,6 +192,9 @@ BFData.reloadData = function () {
 				delete require.cache[file];
 				try {
 					BFData[gameType][dataName] = require(file);
+					if (evoChainCacheDict) {
+						evoChainCacheDict[gameType] = {}; console.log("Clearing Evo Cache "+gameType); // Clear Evo Cache (Old Data is Stored Here)
+					}
 				} catch (e) {
 					console.log("Failed to reload '"+dataType+"' for '"+gameType+"' from "+getFilename(dataType, gameType));
 				}
