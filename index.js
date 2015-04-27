@@ -5,8 +5,10 @@ var BF_Database = {
 	init: function (client, imports) {
 		var BFDataFile = scriptDir+'BFData.js';
 		var passiveDataFile = scriptDir+'passives.js';
+		var procDataFile = scriptDir+'procs.js';
 		var BFData = require(BFDataFile);
 		var passiveData = require(passiveDataFile);
+		var procData = require(procDataFile);
 		var romaji = BFData.romaji;
 		var strFormat = require('util').format;
 		var silentChans = {};
@@ -20,28 +22,24 @@ var BF_Database = {
 		var definePassive = function (passives) {
 			var effects = [];
 			passives = [].concat(passives); // Make passives an array.
-			var defineStatBuffs = function (dict) {
-					var buffs = [], descBuf = [], desc = "";
-					var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
-					for (var stat in stats) if (dict[stat+"% buff"]) buffs.push({stat: stats[stat], value: dict[stat+"% buff"]});
-					for (var i = 0; i < buffs.length; i++) {
-						var buff = buffs[i];
-						desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
-						for (var j = i+1; j < buffs.length; j++)
-							if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
-						if (desc.substr(-14) === "HP/ATK/DEF/REC") desc = strFormat("%s%s%% All Stats", buff.value>0?"+":"" , buff.value);
-						descBuf.push(desc);
-						desc = "";
-					}
-					return descBuf.join(" ");
-			}
-			// var defineDropBuffs = function () {} Consider it.
 			var passiveIDs = passiveData;
 			passives.forEach(function (passive, index, passives) {
 				if (passiveIDs[passive["passive id"]] && passiveIDs[passive["passive id"]].format) effects.push(passiveIDs[passive["passive id"]].format(passive));
 				else if (passiveIDs[passive["passive id"]].name) effects.push(passiveIDs[passive["passive id"]].name);
 				else if (passive["passive id"]) effects.push(strFormat("Unrecognized Passive (%s)", passive["passive id"]));
 				else effects.push(strFormat("Unknown Passive (%s)", passive["unknown passive id"]));
+			});
+			return effects.join(", ");
+		};
+		var defineProcs = function (procs) {
+			var effects = [];
+			procs = [].concat(procs); // Make passives an array.
+			var procIDs = procData;
+			procs.forEach(function (proc, index, procs) {
+				if (procIDs[proc["proc id"]] && procIDs[proc["proc id"]].format) effects.push(procIDs[proc["proc id"]].format(proc));
+				else if (procIDs[proc["proc id"]].name) effects.push(procIDs[proc["proc id"]].name);
+				else if (proc["proc id"]) effects.push(strFormat("Unrecognized proc (%s)", proc["proc id"]));
+				else effects.push(strFormat("Unknown proc (%s)", proc["unknown proc id"]));
 			});
 			return effects.join(", ");
 		};
@@ -225,12 +223,12 @@ var BF_Database = {
 								var name = "";
 								for (var game in BFData.versions)
 									if (!name && BFData[game].getItem(cond)) name = BFData[game].getItem(cond).name;
-								return strFormat("%s = %s", prop, name || ("Unknown Item ID: "+cond));
+								return strFormat("Equip %s", name || ("Unknown Item ID: "+cond));
 							case "unit required":
 								var units = cond.map(function (unit) {
 									return unit.name || (BFData.getUnit(unit.id) || BFData.JP.getUnit(unit.id) || {}).name || ("Unknown Unit ID: "+cond);
-								}).join(" or ");
-								return strFormat("%s: %s", prop, units);
+								}).join("/");
+								return strFormat("%s in Squad", units);
 							case "unknown": return "Unknown";
 						}
 						if (cond === true) return prop;
@@ -240,7 +238,7 @@ var BF_Database = {
 						}
 						return strFormat("%s: { %s }", prop, formatDict(cond, "condition"));
 					};
-					return conditions.map(formatCondition).join(", ");
+					return conditions.map(formatCondition).join(" or ");
 				case "bb effect": // used by the [bb], [sbb], and [ubb] paths
 					var effDict = {}
 					for (var prop in dict) effDict[prop] = dict[prop];
@@ -274,12 +272,12 @@ var BF_Database = {
 					return buf + effects.sort().map(formatEffect).join(", ");
 
 				case "es":
-					buf += strFormat("Conditions: %s | ", dict["conditions"].map(function(con){return formatDict(con, "condition");}).join(", "));
+					buf += strFormat("Conditions: %s | ", dict["conditions"].map(function(con){return formatDict(con, "condition");}).join(", ") || "None");
 				case "ls":
 					buf += definePassive(dict.effects);
 					return buf;
 				
-				case "bb":
+				case "bb old":
 					var bb = dict;
 					// buf += dict.name;
 					var minbb = bb.levels[0], maxbb = bb.levels[9];
@@ -315,6 +313,25 @@ var BF_Database = {
 						if (maxbb.effects.length > 1) buf += " | May Have Other Effects";
 					}
 					return buf;
+				
+				case "bb":
+					var bb = dict;
+					var minbb = bb.levels[0], maxbb = bb.levels[9];
+					var buf = "";
+					buf += "Cost: ";
+					if (minbb["bc cost"] !== maxbb["bc cost"]) {
+						buf += minbb["bc cost"] + "-" + maxbb["bc cost"];
+					} else {
+						buf += minbb["bc cost"];
+					}
+					buf += "BC | ";
+					if (bb["hits"]) {
+						if (bb["hit dmg% distribution (total)"] !== 100) buf += "Dmg% " + bb["hit dmg% distribution (total)"] + " | ";
+						buf += bb["hits"] + " Hit ";
+					}
+					buf += defineProcs(maxbb.effects);
+					return buf;
+					
 					
 				case 'no format':
 				default:
@@ -1259,7 +1276,9 @@ var BF_Database = {
 				BFData: BFData,
 				formatDict: formatDict,
 				formatItemDict: formatItemDict,
-				definePassive: definePassive
+				definePassive: definePassive,
+				passives: passiveData,
+				procs: procData
 			}
 		};
 	}
