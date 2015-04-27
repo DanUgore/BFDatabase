@@ -1,4 +1,6 @@
 var strFormat = require('util').format;
+var procData = require('./procs.js');
+
 var defineStatBuffs = function (dict) {
 		var buffs = [], descBuf = [], desc = "";
 		var stats = {hp:"HP",atk:"ATK",def:"DEF",rec:"REC",crit:"Crit"};
@@ -84,7 +86,7 @@ var passiveIDs = {
 	"10": {
 		name: "HC Effectiveness",
 		format: function (dict) {
-			return strFormat("%s%% HC Effectiveness", dict["hc effectiveness"]);
+			return strFormat("%s%% HC Effectiveness", dict["hc effectiveness%"]);
 		}
 	},
 	"11": {
@@ -255,7 +257,7 @@ var passiveIDs = {
 				descBuf.push(desc+" Drop Rate");
 				desc = "";
 			}
-			queue.push(descBuf.join(" ")+" on Spark");
+			if (descBuf.length) queue.push(descBuf.join(" ")+" on Spark");
 			return queue.join(" & ");
 		}
 	},
@@ -347,9 +349,20 @@ var passiveIDs = {
 		}
 	},
 	"46": {
-		name: "HP Proportional ATK Buff",
+		name: "HP Proportional Stat Buff",
 		format: function (dict) {
-			return strFormat("%s-%s%% ATK depending on HP %s", dict["atk% base buff"], dict["atk% extra buff based on hp"], dict["buff proportional to hp"]);
+			var buffs = [], descBuf = [], desc = "";
+			var stats = {atk:"ATK",def:"DEF",rec:"REC"};
+			for (var stat in stats) if (!isNaN(dict[stat+"% base buff"])) buffs.push({stat: stats[stat], min: dict[stat+"% base buff"], max: dict[stat+"% extra buff based on hp"]});
+			for (var i = 0; i < buffs.length; i++) {
+				var buff = buffs[i];
+				desc += strFormat("%s-%s%% %s", buff.min , buff.max, buff.stat);
+				for (var j = i+1; j < buffs.length; j++)
+					if (buffs[j].min === buff.min && buffs[j].max === buff.max) desc += "/"+buffs.splice(j--,1)[0].stat;
+				descBuf.push(desc);
+				desc = "";
+			}
+			return strFormat("%s depending on HP %s", descBuf.join(" "), dict["buff proportional to hp"]);
 		}
 	},
 	"47": {
@@ -475,7 +488,18 @@ var passiveIDs = {
 	},
 	"66": {
 		name: "Add Effect To Brave Bursts",
-		format: function (dict) { return "Add Effect To Brave Bursts"; }
+		format: function (dict) {
+			var bbs = [], procs = dict["triggered effect"];
+			if (dict["trigger on bb"]) bbs.push("BB");
+			if (dict["trigger on sbb"]) bbs.push("SBB");
+			var effects = procs.map(function (proc) {
+				if (procData[proc["proc id"]] && procData[proc["proc id"]].format) return procData[proc["proc id"]].format(proc);
+				if (procData[proc["proc id"]].name) return procData[proc["proc id"]].name;
+				if (proc["proc id"]) return strFormat("Unrecognized proc (%s)", proc["proc id"]);
+				return strFormat("Unknown proc (%s)", proc["unknown proc id"]);
+			});
+			return strFormat("Add Effect To %s (%s)", bbs.join("/"), effects.join(","));
+		}
 	},
 }
 
