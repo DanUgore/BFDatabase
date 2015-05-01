@@ -14,7 +14,7 @@ var defineStatBuffs = function (dict) {
 			descBuf.push(desc);
 			desc = "";
 		}
-		return descBuf.join(" ");
+		return descBuf.join(" & ");
 }
 // var defineDropBuffs = function () {} Consider it.
 
@@ -22,13 +22,16 @@ var passiveIDs = {
 	"1": {
 		name: "Stat Buffs",
 		format: function (dict) { // 
-			return "All Units: "+defineStatBuffs(dict);
+			return defineStatBuffs(dict);
 		}
 	},
 	"2": {
 		name: "Element-Specific Stat Buffs",
-		format: function (dict) { // 
-			return dict["elements buffed"].map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}) + " Units: " + defineStatBuffs(dict);
+		format: function (dict) {
+			var elements = dict["elements buffed"];
+			if (elements.length < 6) elements = elements.map(function(name){return name.charAt(0).toUpperCase()+name.substr(1);}).join("/");
+			else elements = "Any Element";
+			return strFormat("%s - %s", defineStatBuffs(dict), elements);
 		}
 	},
 	"4": {
@@ -135,6 +138,26 @@ var passiveIDs = {
 			return strFormat("%s%% Chance Reduce Damage %s%%", dict["dmg reduction chance%"], dict["dmg reduction%"]);
 		}
 	},
+	"15": {
+		name: "Heal HP on Enemy Defeat",
+		format: function (dict) {
+			var buf = "Heal ";
+			buf += dict["hp% recover on enemy defeat low"];
+			if (dict["hp% recover on enemy defeat low"] !== dict["hp% recover on enemy defeat high"]) buf += "-"+dict["hp% recover on enemy defeat high"];
+			buf += "% HP on Enemy Defeat";
+			return buf;
+		}
+	},
+	"16": {
+		name: "Heal HP on Battle Win",
+		format: function (dict) {
+			var buf = "Heal ";
+			buf += dict["hp% recover on battle win low"];
+			if (dict["hp% recover on battle win low"] !== dict["hp% recover on battle win high"]) buf += "-"+dict["hp% recover on battle win high"];
+			buf += '% HP on Battle "WIN"';
+			return buf;
+		}
+	},
 	"17": {
 		name: "HP Drain",
 		format: function (dict) {
@@ -193,6 +216,16 @@ var passiveIDs = {
 			return strFormat("%s for First %s Turns", defineStatBuffs(buffObj), dict["first x turns"]);
 		}
 	},
+	"23": {
+		name: "BC on Battle Win",
+		format: function (dict) {
+			var buf = "";
+			buf += dict["hp% recover on battle win low"];
+			if (dict["hp% recover on battle win low"] !== dict["hp% recover on battle win high"]) buf += "-"+dict["hp% recover on battle win high"];
+			buf += 'BC on Battle "WIN"';
+			return buf;
+		}
+	},
 	"24": {
 		name: "Damage to HP on hit",
 		format: function (dict) {
@@ -224,6 +257,19 @@ var passiveIDs = {
 			if (dict["dmg% reflect low"] !== dict["dmg% reflect high"]) buf += "-"+dict["dmg reflect% high"];
 			buf += "% Damage Reflect";
 			return buf;
+		}
+	},
+	"27": {
+		name: "Chance to be Targeted",
+		format: function (dict) {
+			return strFormat("%s%% Chance to be Targeted", dict["target% chance"]);
+		}
+	},
+	"28": {
+		name: "HP Threshold Chance to be Targeted",
+		format: function (dict) {
+			var compType = dict["hp below % passive requirement"] ? "below" : "above";
+			return strFormat("%s%% Chance to be Targeted when HP %s %s%%", dict["target% chance"], compType, dict["hp "+compType+" % passive requirement"]);
 		}
 	},
 	"29": {
@@ -320,7 +366,7 @@ var passiveIDs = {
 		name: "Gender Buffs",
 		format: function (dict) {
 			var gender = dict["gender required"].charAt(0).toUpperCase() + dict["gender required"].substr(1);
-			return strFormat("%s Units: %s", gender, defineStatBuffs(dict));
+			return strFormat("%s - %s", gender, defineStatBuffs(dict));
 		}
 	},
 	"43": {
@@ -400,27 +446,80 @@ var passiveIDs = {
 			var elements = {fire:"Fire",water:"Water",earth:"Earth",thunder:"Thunder",light:"Light",dark:"Dark"};
 			for (var element in elements) 
 				if (dict[element+" units do extra elemental weakness dmg"]) unitsBuffed.push(elements[element]);
-			if (unitsBuffed.length < 6) return strFormat("%s Units: +%s%% Weakness Damage", unitsBuffed.join("/"), dict["elemental weakness multiplier%"]);
-			return strFormat("All Units: +%s%% Weakness Damage", dict["elemental weakness multiplier%"]);
+			if (unitsBuffed.length < 6) return strFormat("+%s%% %s Weakness Damage", dict["elemental weakness multiplier%"], unitsBuffed.join("/"));
+			return strFormat("+%s%% All Weakness Damage", dict["elemental weakness multiplier%"]);
 		}
 	},
 	"53": {
-		name: "Element Weakness Resist",
+		name: "Crit/Element Weakness Resist",
 		format: function (dict) {
+			var resists = [];
 			var buf = "";
-			if (dict["strong base element damage resist"]) {
-				buf += dict["strong base element damage resist"] + "% Base";
-				if (dict["strong buffed element damage resist"]) {
-					if (dict["strong base element damage resist"] === dict["strong base element damage resist"]) {
+			if (dict["strong base element damage resist%"]) {
+				buf += dict["strong base element damage resist%"] + "% Base";
+				if (dict["strong buffed element damage resist%"]) {
+					if (dict["strong base element damage resist%"] === dict["strong base element damage resist%"]) {
 						buf += "/Buffed";
 					} else {
-						buf += " & "+dict["strong buffed element damage resist"] + "% Buffed";
+						buf += " & "+dict["strong buffed element damage resist%"] + "% Buffed";
 					}
 				}
-			} else if (dict["strong buffed element damage resist"]) {
-				buf += dict["strong buffed element damage resist"] + "% Buffed";
+			} else if (dict["strong buffed element damage resist%"]) {
+				buf += dict["strong buffed element damage resist%"] + "% Buffed";
 			}
-			return buf+" Element Weakness Resist";
+			if (buf) {
+				resists.push(buf+" Element Weakness Resist");
+				buf = "";
+			}
+			if (dict["crit chance base resist%"]) {
+				buf += dict["crit chance base resist%"] + "% Base";
+				if (dict["crit chance buffed resist%"]) {
+					if (dict["crit chance base resist%"] === dict["crit chance base resist%"]) {
+						buf += "/Buffed";
+					} else {
+						buf += " & "+dict["crit chance buffed resist%"] + "% Buffed";
+					}
+				}
+			} else if (dict["crit chance buffed resist%"]) {
+				buf += dict["crit chance buffed resist%"] + "% Buffed";
+			}
+			if (buf) {
+				resists.push(buf+" Crit Resist");
+				buf = "";
+			}
+			if (dict["bc base drop rate resist%"]) {
+				buf += dict["bc base drop rate resist%"] + "% Base";
+				if (dict["bc buffed drop rate resist%"]) {
+					if (dict["bc base drop rate resist%"] === dict["bc base drop rate resist%"]) {
+						buf += "/Buffed";
+					} else {
+						buf += " & "+dict["bc buffed drop rate resist%"] + "% Buffed";
+					}
+				}
+			} else if (dict["bc buffed drop rate resist%"]) {
+				buf += dict["bc buffed drop rate resist%"] + "% Buffed";
+			}
+			if (buf) {
+				resists.push(buf+" BC Resist");
+				buf = "";
+			}
+			if (dict["hc base drop rate resist%"]) {
+				buf += dict["hc base drop rate resist%"] + "% Base";
+				if (dict["hc buffed drop rate resist%"]) {
+					if (dict["hc base drop rate resist%"] === dict["hc base drop rate resist%"]) {
+						buf += "/Buffed";
+					} else {
+						buf += " & "+dict["hc buffed drop rate resist%"] + "% Buffed";
+					}
+				}
+			} else if (dict["hc buffed drop rate resist%"]) {
+				buf += dict["hc buffed drop rate resist%"] + "% Buffed";
+			}
+			if (buf) {
+				resists.push(buf+" HC Resist");
+				buf = "";
+			}
+			return resists.join(" + ");
 		}
 	},
 	"55": {
@@ -479,7 +578,7 @@ var passiveIDs = {
 		name: "BC On Crit",
 		format: function (dict) {
 			var buf = "";
-			if (dict["bc fill on crit%"] < 100) buf += dict["bc fill on crit%"] + "% Chance ";
+			if (dict["bc fill on crit%"] < 100) buf += strFormat("%d%% Chance ", dict["bc fill on crit%"]);
 			buf += dict["bc fill on crit min"];
 			if (dict["bc fill on crit min"] !== dict["bc fill on crit max"]) buf += "-"+dict["bc fill on crit max"];
 			buf += " BC On Crit";
