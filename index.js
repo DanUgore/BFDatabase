@@ -25,7 +25,7 @@ var BF_Database = {
 			var passiveIDs = passiveData;
 			passives.forEach(function (passive, index, passives) {
 				if (passiveIDs[passive["passive id"]] && passiveIDs[passive["passive id"]].format) effects.push(passiveIDs[passive["passive id"]].format(passive));
-				else if (passiveIDs[passive["passive id"]].name) effects.push(passiveIDs[passive["passive id"]].name);
+				else if (passiveIDs[passive["passive id"]]) effects.push(passiveIDs[passive["passive id"]].name);
 				else if (passive["passive id"]) effects.push(strFormat("Unrecognized Passive (%s)", passive["passive id"]));
 				else effects.push(strFormat("Unknown Passive (%s)", passive["unknown passive id"]));
 			});
@@ -37,7 +37,7 @@ var BF_Database = {
 			var procIDs = procData;
 			procs.forEach(function (proc, index, procs) {
 				if (procIDs[proc["proc id"]] && procIDs[proc["proc id"]].format) effects.push(procIDs[proc["proc id"]].format(proc));
-				else if (procIDs[proc["proc id"]].name) effects.push(procIDs[proc["proc id"]].name);
+				else if (procIDs[proc["proc id"]]) effects.push(procIDs[proc["proc id"]].name);
 				else if (proc["proc id"]) effects.push(strFormat("Unrecognized proc (%s)", proc["proc id"]));
 				else effects.push(strFormat("Unknown proc (%s)", proc["unknown proc id"]));
 			});
@@ -121,6 +121,7 @@ var BF_Database = {
 				// case '[bb]':
 				case '[ubb]':
 					buf += strFormat("%s - %s", dict.name, dict.desc);
+					pushBuf();
 					var bb = dict;
 					if (bb['hits']) {
 						buf += strFormat("Hits/DC %d/%d", bb['hits'], (bb['max bc generated']/bb['hits']));
@@ -131,14 +132,14 @@ var BF_Database = {
 					pushBuf();
 					dict = dict.levels[9];
 					
-				case '[ubb][levels][0]': case '[ubb][levels][1]': case '[ubb][levels][2]': case '[ubb][levels][3]': case '[ubb][levels][4]': case '[ubb][levels][5]': case '[ubb][levels][6]': case '[ubb][levels][7]': case '[ubb][levels][8]': case '[ubb][levels][9]':
-				case '[sbb][levels][0]': case '[sbb][levels][1]': case '[sbb][levels][2]': case '[sbb][levels][3]': case '[sbb][levels][4]': case '[sbb][levels][5]': case '[sbb][levels][6]': case '[sbb][levels][7]': case '[sbb][levels][8]': case '[sbb][levels][9]':
-				case '[bb][levels][0]': case '[bb][levels][1]': case '[bb][levels][2]': case '[bb][levels][3]': case '[bb][levels][4]': case '[bb][levels][5]': case '[bb][levels][6]': case '[bb][levels][7]': case '[bb][levels][8]': case '[bb][levels][9]':
+				case '[ubb][levels][N]':
+				case '[sbb][levels][N]':
+				case '[bb][levels][N]': 
 					buf += strFormat("BC Cost %s | ", dict["bc cost"]);
 					dict = dict["effects"];
-				case '[ubb][levels][0][effects]': case '[ubb][levels][1][effects]': case '[ubb][levels][2][effects]': case '[ubb][levels][3][effects]': case '[ubb][levels][4][effects]': case '[ubb][levels][5][effects]': case '[ubb][levels][6][effects]': case '[ubb][levels][7][effects]': case '[ubb][levels][8][effects]': case '[ubb][levels][9][effects]':
-				case '[sbb][levels][0][effects]': case '[sbb][levels][1][effects]': case '[sbb][levels][2][effects]': case '[sbb][levels][3][effects]': case '[sbb][levels][4][effects]': case '[sbb][levels][5][effects]': case '[sbb][levels][6][effects]': case '[sbb][levels][7][effects]': case '[sbb][levels][8][effects]': case '[sbb][levels][9][effects]':
-				case '[bb][levels][0][effects]': case '[bb][levels][1][effects]': case '[bb][levels][2][effects]': case '[bb][levels][3][effects]': case '[bb][levels][4][effects]': case '[bb][levels][5][effects]': case '[bb][levels][6][effects]': case '[bb][levels][7][effects]': case '[bb][levels][8][effects]': case '[bb][levels][9][effects]':
+				case '[ubb][levels][N][effects]':
+				case '[sbb][levels][N][effects]':
+				case '[bb][levels][N][effects]': 
 					var effects = dict, numEffects = effects.length;
 					buf += "# of Effects: " + numEffects;
 					pushBuf();
@@ -258,7 +259,9 @@ var BF_Database = {
 						aoeparty: "All Allies",
 						singleself: "Self"
 					};
-					buf += strFormat("Target: %s | Frame %s | ", targetTypes[dict["target area"]+dict["target type"]], dict["effect delay time(ms)/frame"].split("/")[1]);
+					buf += strFormat("Target: %s | Frame %s | ",
+						targetTypes[dict["target area"]+dict["target type"]],
+						dict["effect delay time(ms)/frame"].split("/")[1]);
 					var effects = Object.keys(effDict);
 					var formatEffect = function (prop) {
 						var effStr = "", eff = effDict[prop];
@@ -324,7 +327,9 @@ var BF_Database = {
 					} else {
 						buf += minbb["bc cost"];
 					}
-					buf += "BC | ";
+					buf += "BC";
+					if (bb["max bc generated"]) buf += strFormat("/%sDC | ", bb["max bc generated"]);
+					else buf += " | ";
 					if (bb["hits"]) {
 						if (bb["hit dmg% distribution (total)"] !== 100) buf += "Dmg% " + bb["hit dmg% distribution (total)"] + " | ";
 						buf += bb["hits"] + " Hit ";
@@ -382,6 +387,9 @@ var BF_Database = {
 						if (Array.isArray(dict["effect"])) queue.push(definePassive(dict.effect));
 						else queue.push(formatItemDict(dict.effect, '[effect]'));
 					}
+					if (dict["recipe"]) {
+						queue.push(formatItemDict(dict["recipe"], '[recipe]'));
+					}
 					return queue;
 				
 				case '[effect]':
@@ -403,6 +411,7 @@ var BF_Database = {
 						queue.push(strFormat("%d) %s", i, effect));
 					}
 					return queue;
+					
 				case '[recipe]':
 					var karma = Number(dict['karma']) || 0;
 					if (karma) buf += strFormat("Cost: %d Karma | ", karma);
@@ -598,7 +607,7 @@ var BF_Database = {
 		}
 		
 		return {
-			handlers: {
+			handlers: client.config("bfdata-commands") === false ? {} : {
 				'!unit !unitjp !uniteu !unitkr': function (command) {
 					var buf = "", queue = [];
 					var bfdata = BFData["GL"];
@@ -670,7 +679,8 @@ var BF_Database = {
 							return response;
 						}
 						var key = args[i];
-						path.push(key);
+						if (isNaN(key)) path.push(key);
+						else path.push("N");
 						data = data[key];
 						if (data === undefined) {
 							response.message = "Key undefined: "+key;
@@ -960,7 +970,8 @@ var BF_Database = {
 							return response;
 						}
 						var key = args[i];
-						path.push(key);
+						if (isNaN(key)) path.push(key);
+						else path.push("N");
 						data = data[key];
 						if (data === undefined) {
 							response.message = "Key undefined: "+key;
