@@ -68,6 +68,22 @@ var procIDs = {
 	},
 	"6":{
 		name: "Drop Rate Buff",
+		format: function (dict) {
+			var buffs = [], descBuf = [], desc = "";
+			var stats = {bc:"BC",hc:"HC",karma:"Karma",zel:"Zel",item:"Item"};
+			if (dict["bc drop rate% buff (10)"]) buffs.push({stat: "BC", value: dict["bc drop rate% buff (10)"]});
+			if (dict["hc drop rate% buff (9)"]) buffs.push({stat: "HC", value: dict["hc drop rate% buff (9)"]});
+			if (dict["item drop rate% buff (11)"]) buffs.push({stat: "Item", value: dict["item drop rate% buff (11)"]});
+			for (var i = 0; i < buffs.length; i++) {
+				var buff = buffs[i];
+				desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+				for (var j = i+1; j < buffs.length; j++)
+					if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+				descBuf.push(desc+" Drop Rate");
+				desc = "";
+			}
+			return strFormat("%s turn %s Buff", dict["drop rate buff turns"], descBuf.join(" "));
+		}
 	},
 	"7":{
 		name: "Angel Idol",
@@ -143,7 +159,7 @@ var procIDs = {
 		name: "Multi-Element Attack",
 		format: function (dict) {
 			var elements = dict["bb elements"].map(function(e){return e.charAt(0).toUpperCase()+e.substr(1);}).join("/");
-			return defineAttack(dict) + strFormat("+ %s Elements", elements);
+			return defineAttack(dict) + strFormat(" + %s Elements", elements);
 		}
 	},
 	"30":{
