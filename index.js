@@ -85,8 +85,8 @@ var BF_Database = {
 					
 				case '[ai]':
 					var ai = dict, aistring = JSON.stringify(ai);
-					for (var type in AITypes) {
-						if (aistring === JSON.stringify(AITypes[type])) {
+					for (var type in AIData) {
+						if (aistring === JSON.stringify(AIData[type])) {
 							var nobbchance = 1;
 							for (var i = 0; i < ai.length; i++) {
 								if (ai[i]["action"] !== "skill") continue;
@@ -465,146 +465,7 @@ var BF_Database = {
 			}
 		}
 		var formatBuff = function (buffObj) {};
-		var AITypes = {
-			"Type 1": [
-				{
-					"action": "skill", 
-					"chance%": 60.0, 
-					"target conditions": "random", 
-					"target type": "party"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 30.0, 
-					"target conditions": "atk_max", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 100.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}
-			],
-			"Type 2": [
-				{
-					"action": "skill", 
-					"chance%": 60.0, 
-					"target conditions": "hp_50pr_over", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "skill", 
-					"chance%": 20.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 100.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}
-			],
-			"Type 3": [
-				{
-					"action": "skill", 
-					"chance%": 60.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "skill", 
-					"chance%": 20.0, 
-					"target conditions": "atk_max", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 30.0, 
-					"target conditions": "hp_min", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 100.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}
-			],
-			"Type 4": [
-				{
-					"action": "skill", 
-					"chance%": 60.0, 
-					"target conditions": "hp_50pr_under", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "skill", 
-					"chance%": 30.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 70.0, 
-					"target conditions": "hp_max", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 50.0, 
-					"target conditions": "hp_min", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 100.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}
-			],
-			"Type 5": [
-				{
-					"action": "skill", 
-					"chance%": 80.0, 
-					"target conditions": "hp_50pr_under", 
-					"target type": "party"
-				}, 
-				{
-					"action": "skill", 
-					"chance%": 20.0, 
-					"target conditions": "hp_min", 
-					"target type": "party"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 100.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}
-			],
-			"Type 6": [
-				{
-					"action": "skill", 
-					"chance%": 100.0, 
-					"target conditions": "hp_25pr_under", 
-					"target type": "party"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 50.0, 
-					"target conditions": "atk_max", 
-					"target type": "enemy"
-				}, 
-				{
-					"action": "attack", 
-					"chance%": 100.0, 
-					"target conditions": "random", 
-					"target type": "enemy"
-				}
-			]
-		}
+		var AIData = require('./ai_types.json');
 		
 		return {
 			handlers: client.config("bfdata-commands") === false ? {} : {
@@ -1289,7 +1150,8 @@ var BF_Database = {
 				formatItemDict: formatItemDict,
 				definePassive: definePassive,
 				passives: passiveData,
-				procs: procData
+				procs: procData,
+				ai: AIData
 			}
 		};
 	}
