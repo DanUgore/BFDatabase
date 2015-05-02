@@ -1,9 +1,45 @@
 var strFormat = require('util').format;
 var defineTarget = function (dict) {
-	return {
-		
-	}
+	var targetTypes = {
+		singleenemy: "Single Enemy",
+		aoeenemy: "All Enemies",
+		singleparty: "Single Ally",
+		aoeparty: "All Allies",
+		singleself: "Self"
+	};
+	return "on "+(targetTypes[dict["target area"]+dict["target type"]] || "Unrecognized Target");
 };
+var defineStatBuffs = function (dict, debuff) {
+		var buffs = [], debuffs = [], descBuf = [], desc = "";
+		var stats = {atk:{name:"ATK",id:1},def:{name:"DEF",id:3},rec:{name:"REC",id:5},crit:{name:"Crit",id:7}};
+		for (var stat in stats) {
+			var id = stats[stat].id;
+			var propName = strFormat("%s%% buff (%s)", stat, id);
+			if (dict[propName]) buffs.push({stat: stats[stat].name, value: dict[propName]});
+			propName = strFormat("%s%% buff (%s)", stat, id+1);
+			if (dict[propName]) debuffs.push({stat: stats[stat].name, value: dict[propName]});
+		}
+		for (var i = 0; i < buffs.length; i++) {
+			var buff = buffs[i];
+			desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+			for (var j = i+1; j < buffs.length; j++)
+				if (buffs[j].value === buff.value) desc += "/"+buffs.splice(j--,1)[0].stat;
+			if (desc.substr(-12) === "ATK/DEF/REC") desc = strFormat("%s%s%s%% All Stats", desc.substr(0, desc.length), buff.value>0?"+":"" , buff.value);
+			descBuf.push(desc);
+			desc = "";
+		}
+		for (var i = 0; i < debuffs.length; i++) {
+			var buff = debuffs[i];
+			if (dict["proc"])
+			desc += strFormat("%s%s%% %s", buff.value>0?"+":"" , buff.value, buff.stat);
+			for (var j = i+1; j < debuffs.length; j++)
+				if (debuffs[j].value === buff.value) desc += "/"+debuffs.splice(j--,1)[0].stat;
+			if (desc.substr(-12) === "ATK/DEF/REC") desc = strFormat("%s%s%s%% All Stats", desc.substr(0, desc.length), buff.value>0?"+":"" , buff.value);
+			descBuf.push(desc);
+			desc = "";
+		}
+		return descBuf.join(" & ");
+}
 var defineAttack = function (dict) {
 	var buf = "";
 	buf += dict["bb atk%"] + "% ";
@@ -65,6 +101,9 @@ var procIDs = {
 	},
 	"5":{
 		name: "Stat Buff",
+		format: function (dict) {
+			return strFormat("%s turn %s %s", dict["buff turns"], defineStatBuffs(dict), defineTarget(dict));
+		}
 	},
 	"6":{
 		name: "Drop Rate Buff",
@@ -82,7 +121,7 @@ var procIDs = {
 				descBuf.push(desc+" Drop Rate");
 				desc = "";
 			}
-			return strFormat("%s turn %s Buff", dict["drop rate buff turns"], descBuf.join(" "));
+			return strFormat("%s turn %s Buff %s", dict["drop rate buff turns"], descBuf.join(" "), defineTarget(dict));
 		}
 	},
 	"7":{
@@ -125,6 +164,9 @@ var procIDs = {
 	},
 	"18":{
 		name: "Damage Mitigation",
+		format: function (dict) {
+			return strFormat("%s turn %s%% Mit %s", dict["dmg% reduction turns (36)"], dict["dmg% reduction"], defineTarget(dict));
+		}
 	},
 	"19":{
 		name: "BC per turn",
@@ -140,6 +182,17 @@ var procIDs = {
 	},
 	"24":{
 		name: "Convert Stat Buff",
+		format: function (dict) {
+			// Does not always have to be ATK? Fix later.
+			var stat = dict["converted attribute"];
+			var stats = {
+				attack: "ATK",
+				defense: "DEF",
+				hp: "HP",
+				recovery: "REC"
+			};
+			return strFormat("%s turn %s%% %s->ATK buff %s", dict["% converted turns"], dict["atk% buff (46)"], stats[stat], defineTarget(dict));
+		}
 	},
 	"26":{
 		name: "Increase Hits",
@@ -164,9 +217,16 @@ var procIDs = {
 	},
 	"30":{
 		name: "Element Buff",
+		format: function (dict) {
+			var elements = dict["elements added"].map(function(e){return e.charAt(0).toUpperCase()+e.substr(1);}).join("/");
+			return strFormat("%s turn %s Buff %s", dict["elements added turns"], elements, defineTarget(dict));
+		}
 	},
 	"31":{
 		name: "BB Fill",
+		format: function (dict) {
+			return strFormat("Fill %d BC", dict["increase bb gauge"]);
+		}
 	},
 	"32":{
 		name: "Change Element",
