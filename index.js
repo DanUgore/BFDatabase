@@ -97,34 +97,20 @@ var BF_Database = {
 					}
 					return "Unrecognized AI Type";
 					
+				case '[ubb][levels]':
+				case '[sbb][levels]':
+				case '[bb][levels]':
+					return "Array 0-9: [Level 1, Level 2, Level 3, Level 4, Level 5, Level 6, Level 7, Level 8, Level 9, Level 10]";
+					
 				case '[bb]':
 				case '[sbb]':
+				case '[ubb]':
 					var bb = dict;
 					buf += strFormat("%s - %s", dict.name, dict.desc);
 					pushBuf();
 					buf += "Max Level Data";
 					if (bb['hits']) {
 						buf += strFormat(": Hits/DC %d/%d", bb['hits'], (bb['max bc generated']/bb['hits']));
-						if (bb["hit dmg% distribution (total)"] !== 100) {
-							buf += " | Dmg% " + bb["hit dmg% distribution (total)"];
-						}
-					}
-					pushBuf();
-					queue = queue.concat(formatDict(dict.levels[9], path+'[levels][9]'));
-					return queue;
-					
-				case '[ubb][levels]':
-				case '[sbb][levels]':
-				case '[bb][levels]':
-					return "Array 0-9: [Level 1, Level 2, Level 3, Level 4, Level 5, Level 6, Level 7, Level 8, Level 9, Level 10]";
-					
-				// case '[bb]':
-				case '[ubb]':
-					buf += strFormat("%s - %s", dict.name, dict.desc);
-					pushBuf();
-					var bb = dict;
-					if (bb['hits']) {
-						buf += strFormat("Hits/DC %d/%d", bb['hits'], (bb['max bc generated']/bb['hits']));
 						if (bb["hit dmg% distribution (total)"] !== 100) {
 							buf += " | Dmg% " + bb["hit dmg% distribution (total)"];
 						}
